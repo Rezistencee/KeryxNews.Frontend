@@ -1,11 +1,23 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import TheHeader from './components/TheHeader.vue'
+import TheFooter from './components/TheFooter.vue'
+
+import { RouterView } from 'vue-router'
+
+const menu = [
+  { label: 'Home', href: '/' },
+  { label: 'Articles', href: '/articles' },
+]
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <TheHeader :menu="menu" />
+
+  <main>
+    <RouterView />
+  </main>
+
+  <TheFooter />
 </template>
 
 <style scoped></style>

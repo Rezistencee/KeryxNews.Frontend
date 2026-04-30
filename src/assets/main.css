@@ -1,7 +1,21 @@
 @import './base.css';
 
+html,
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+  overflow-x: hidden;
+  position: relative;
+}
+
 #app {
-  width: 100vw;
+  width: 100%;
   min-height: 100vh;
   font-weight: normal;
 }
