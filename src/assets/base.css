@@ -33,3 +33,17 @@
 
   --section-gap: 160px;
 }
+
+:root {
+  --color-background: #0b0f17;
+  --color-background-soft: #111827;
+  --color-background-mute: #0f172a;
+
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(255, 255, 255, 0.18);
+
+  --color-heading: #ffffff;
+  --color-text: rgba(255, 255, 255, 0.85);
+
+  --vt-c-indigo: #8aa4ff;
+}
