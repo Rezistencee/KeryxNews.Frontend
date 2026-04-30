@@ -1,5 +1,25 @@
 <script setup lang="ts">
-const menu = ['Home', 'Articles']
+import { ref } from 'vue'
+import { RouterLink } from 'vue-router'
+
+interface MenuItem {
+  label: string
+  href: string
+}
+
+defineProps<{
+  menu: MenuItem[]
+}>()
+
+const isOpen = ref(false)
+
+const toggleMenu = () => {
+  isOpen.value = !isOpen.value
+}
+
+const closeMenu = () => {
+  isOpen.value = false
+}
 </script>
 
 <template>
@@ -9,13 +29,45 @@ const menu = ['Home', 'Articles']
     </div>
 
     <nav class="header__center">
-      <a v-for="item in menu" :key="item" href="#">
-        {{ item }}
-      </a>
+      <RouterLink v-for="item in menu" :key="item.href" :to="item.href" @click="closeMenu">
+        {{ item.label }}
+      </RouterLink>
     </nav>
+
+    <button class="burger" @click="toggleMenu">
+      <svg v-if="!isOpen" width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M4 6H20M4 12H20M4 18H20"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+
+      <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M6 6L18 18M6 18L18 6"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+    </button>
 
     <div class="header__right">
       <button class="btn auth">Login / Register</button>
+    </div>
+
+    <div class="mobile-menu" :class="{ open: isOpen }">
+      <button class="close-btn" @click="closeMenu">✕</button>
+
+      <nav class="mobile-menu__nav">
+        <RouterLink v-for="item in menu" :key="item.href" :to="item.href" @click="closeMenu">
+          {{ item.label }}
+        </RouterLink>
+      </nav>
+
+      <button class="btn auth mobile-btn">Login / Register</button>
     </div>
   </header>
 </template>
@@ -66,32 +118,91 @@ const menu = ['Home', 'Articles']
   font-weight: bold;
 }
 
+.burger {
+  display: none;
+  font-size: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  background: #1e1e1e;
+
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+
+  z-index: 1000;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 2rem 1rem;
+  gap: 1.5rem;
+}
+
+.mobile-menu.open {
+  transform: translateY(0);
+}
+
+.mobile-menu__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: center;
+}
+
+.mobile-menu__nav a {
+  color: #f5f5f5;
+  font-size: 20px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.mobile-btn {
+  width: 80%;
+}
+
+.close-btn {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+
+  font-size: 24px;
+  background: none;
+  border: none;
+  color: #f5f5f5;
+  cursor: pointer;
+}
+
 @media (max-width: 768px) {
   .header {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    row-gap: 1rem;
-    text-align: center;
+    grid-template-columns: 1fr auto;
   }
 
-  .header__left,
   .header__center,
   .header__right {
-    justify-content: center;
+    display: none;
   }
 
-  .header__center {
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-
-  .header__center a {
+  .burger {
     display: block;
+    justify-self: end;
+  }
+
+  .header__left {
+    justify-self: start;
   }
 
   .logo {
-    width: 72px;
-    height: 72px;
+    height: 56px;
   }
 }
 </style>
