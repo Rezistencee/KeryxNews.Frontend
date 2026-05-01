@@ -99,8 +99,9 @@ const closeMenu = () => {
 .header__center a {
   text-decoration: none;
   color: var(--color-text);
-  font-weight: 600;
   font-size: 18pt;
+  font-weight: 600;
+  font-family: 'Merriweather', sans-serif;
 }
 
 .header__right {
@@ -115,6 +116,7 @@ const closeMenu = () => {
   cursor: pointer;
   border: 1px solid var(--color-border);
   background: linear-gradient(135deg, #8aa4ff, #6ee7ff);
+  font-family: 'Merriweather', sans-serif;
   font-weight: bold;
 }
 
