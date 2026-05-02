@@ -7,7 +7,6 @@ import { RouterView } from 'vue-router'
 const menu = [
   { label: 'Home', href: '/' },
   { label: 'Articles', href: '/articles' },
-  { label: 'Profile', href: '/profile' },
 ]
 </script>
 
