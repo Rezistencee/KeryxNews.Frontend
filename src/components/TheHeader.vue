@@ -55,7 +55,7 @@ const closeMenu = () => {
     </button>
 
     <div class="header__right">
-      <button class="btn auth">Login / Register</button>
+      <RouterLink to="/auth" class="btn auth">Login / Register</RouterLink>
     </div>
 
     <div class="mobile-menu" :class="{ open: isOpen }">
@@ -67,7 +67,7 @@ const closeMenu = () => {
         </RouterLink>
       </nav>
 
-      <button class="btn auth mobile-btn">Login / Register</button>
+      <RouterLink to="/auth" class="btn mobile-btn">Login / Register</RouterLink>
     </div>
   </header>
 </template>
@@ -118,6 +118,9 @@ const closeMenu = () => {
   background: linear-gradient(135deg, #8aa4ff, #6ee7ff);
   font-family: 'Merriweather', sans-serif;
   font-weight: bold;
+  color: #1e1e1e;
+  text-decoration: none;
+  text-align: center;
 }
 
 .burger {
