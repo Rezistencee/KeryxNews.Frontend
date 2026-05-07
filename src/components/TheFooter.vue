@@ -25,6 +25,8 @@ const currentYear: number = new Date().getFullYear()
 }
 
 .footer p {
+  margin: 0;
+
   font-weight: 600;
   font-size: 14pt;
   letter-spacing: 0.1em;

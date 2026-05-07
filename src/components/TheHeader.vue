@@ -12,6 +12,7 @@ defineProps<{
 }>()
 
 const isOpen = ref(false)
+const isProfileOpen = ref(false)
 
 const toggleMenu = () => {
   isOpen.value = !isOpen.value
@@ -20,11 +21,39 @@ const toggleMenu = () => {
 const closeMenu = () => {
   isOpen.value = false
 }
+
+const toggleProfile = () => {
+  isProfileOpen.value = !isProfileOpen.value
+}
+
+const closeProfile = () => {
+  isProfileOpen.value = false
+}
 </script>
 
 <template>
   <header class="header">
     <div class="header__left">
+      <button class="burger" @click="toggleMenu">
+        <svg v-if="!isOpen" width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M4 6H20M4 12H20M4 18H20"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+
+        <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M6 6L18 18M6 18L18 6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+
       <img src="../assets/logo.png" alt="Logo" class="logo" />
     </div>
 
@@ -34,28 +63,44 @@ const closeMenu = () => {
       </RouterLink>
     </nav>
 
-    <button class="burger" @click="toggleMenu">
-      <svg v-if="!isOpen" width="28" height="28" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M4 6H20M4 12H20M4 18H20"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
-      </svg>
-
-      <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M6 6L18 18M6 18L18 6"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
-      </svg>
-    </button>
-
     <div class="header__right">
-      <RouterLink to="/auth" class="btn auth">Login / Register</RouterLink>
+      <button class="icon-btn">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M21 21L16.65 16.65M11 18A7 7 0 1 1 11 4a7 7 0 0 1 0 14Z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+
+      <div class="user-wrapper" :class="{ open: isProfileOpen }" @click="toggleProfile">
+        <div class="user">
+          <img
+            src="https://i.pinimg.com/736x/46/ab/15/46ab15d5d0cefcf79826163694b03204.jpg"
+            class="avatar"
+          />
+
+          <span class="arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M6 9L12 15L18 9"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+        </div>
+
+        <div class="dropdown" v-if="isProfileOpen" @click.stop>
+          <RouterLink to="/profile" @click="closeProfile">Profile</RouterLink>
+          <RouterLink to="/settings" @click="closeProfile">Settings</RouterLink>
+          <button @click="closeProfile">Logout</button>
+        </div>
+      </div>
     </div>
 
     <div class="mobile-menu" :class="{ open: isOpen }">
@@ -66,8 +111,6 @@ const closeMenu = () => {
           {{ item.label }}
         </RouterLink>
       </nav>
-
-      <RouterLink to="/auth" class="btn mobile-btn">Login / Register</RouterLink>
     </div>
   </header>
 </template>
@@ -121,6 +164,85 @@ const closeMenu = () => {
   color: #1e1e1e;
   text-decoration: none;
   text-align: center;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  color: white;
+}
+
+.user:hover {
+  background-color: transparent;
+}
+
+.user-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.arrow {
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.user-wrapper.open .arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: absolute;
+  top: 120%;
+  right: 0;
+
+  background: #2a2a2a;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+
+  padding: 0.5rem 0;
+  z-index: 100;
+}
+
+.dropdown a,
+.dropdown button {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  color: white;
+  text-decoration: none;
+  font-family: 'Merriweather', sans-serif;
+  text-align: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.dropdown a:hover,
+.dropdown button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #ff4d6d;
+  object-fit: cover;
+  box-shadow: 0 10px 20px rgba(255, 77, 109, 0.35);
 }
 
 .burger {
@@ -189,25 +311,34 @@ const closeMenu = () => {
 
 @media (max-width: 768px) {
   .header {
-    grid-template-columns: 1fr auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
   }
 
-  .header__center,
-  .header__right {
+  .header__left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .header__center {
     display: none;
+  }
+
+  .header__right {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
   }
 
   .burger {
     display: block;
-    justify-self: end;
-  }
-
-  .header__left {
-    justify-self: start;
   }
 
   .logo {
-    height: 56px;
+    height: 48px;
   }
 }
 </style>

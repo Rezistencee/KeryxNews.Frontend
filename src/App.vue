@@ -11,13 +11,26 @@ const menu = [
 </script>
 
 <template>
-  <TheHeader :menu="menu" />
+  <div class="layout">
+    <TheHeader :menu="menu" />
 
-  <main>
-    <RouterView />
-  </main>
+    <main class="page">
+      <RouterView />
+    </main>
 
-  <TheFooter />
+    <TheFooter />
+  </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page {
+  flex: 1;
+  padding-bottom: 2rem;
+}
+</style>
