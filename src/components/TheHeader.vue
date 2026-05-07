@@ -225,6 +225,7 @@ const closeProfile = () => {
   border: none;
   color: white;
   text-decoration: none;
+  font-family: 'Merriweather', sans-serif;
   text-align: center;
   cursor: pointer;
   font-size: 14px;
