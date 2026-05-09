@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/types/user'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
-import { getUserById } from '@/api/users'
+import { getUserWithArticles } from '@/api/users'
 
 const route = useRoute()
 
@@ -36,14 +36,9 @@ const isOwnProfile = computed(() => {
 const isAuthor = ref(false)
 const isBanned = ref(true)
 
-const posts = ref<Article[]>([
-  {
-    id: 1,
-    title: 'Naughty Dog & TLOU 3',
-    content: 'In the AAA gaming space...',
-    createdAt: '2026-05-06',
-  },
-])
+const posts = computed(() => {
+  return profileUser.value?.articles ?? []
+})
 
 const comments = ref([
   {
@@ -66,7 +61,7 @@ async function fetchProfile() {
 
     const id = route.params.id as string
 
-    const data = await getUserById(id)
+    const data = await getUserWithArticles(id)
 
     profileUser.value = data
   } finally {

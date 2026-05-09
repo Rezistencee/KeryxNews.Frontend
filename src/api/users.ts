@@ -5,3 +5,9 @@ export async function getUserById(id: string) {
 
   return response.data
 }
+
+export async function getUserWithArticles(id: string) {
+  const response = await api.get(`/user/${id}/articles`)
+
+  return response.data
+}
