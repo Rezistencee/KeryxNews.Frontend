@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useDisclosure } from '@/composables/useDisclosure'
+import { useAuthStore } from '@/stores/auth'
 import { RouterLink } from 'vue-router'
 
 interface MenuItem {
@@ -11,31 +12,17 @@ defineProps<{
   menu: MenuItem[]
 }>()
 
-const isOpen = ref(false)
-const isProfileOpen = ref(false)
+const auth = useAuthStore()
 
-const toggleMenu = () => {
-  isOpen.value = !isOpen.value
-}
-
-const closeMenu = () => {
-  isOpen.value = false
-}
-
-const toggleProfile = () => {
-  isProfileOpen.value = !isProfileOpen.value
-}
-
-const closeProfile = () => {
-  isProfileOpen.value = false
-}
+const mobileMenu = useDisclosure()
+const profileMenu = useDisclosure()
 </script>
 
 <template>
   <header class="header">
     <div class="header__left">
-      <button class="burger" @click="toggleMenu">
-        <svg v-if="!isOpen" width="28" height="28" viewBox="0 0 24 24" fill="none">
+      <button class="burger" @click="mobileMenu.toggle">
+        <svg v-if="!mobileMenu.isOpen.value" width="28" height="28" viewBox="0 0 24 24" fill="none">
           <path
             d="M4 6H20M4 12H20M4 18H20"
             stroke="currentColor"
@@ -58,7 +45,7 @@ const closeProfile = () => {
     </div>
 
     <nav class="header__center">
-      <RouterLink v-for="item in menu" :key="item.href" :to="item.href" @click="closeMenu">
+      <RouterLink v-for="item in menu" :key="item.href" :to="item.href">
         {{ item.label }}
       </RouterLink>
     </nav>
@@ -75,12 +62,14 @@ const closeProfile = () => {
         </svg>
       </button>
 
-      <div class="user-wrapper" :class="{ open: isProfileOpen }" @click="toggleProfile">
+      <div
+        v-if="auth.isAuthenticated"
+        class="user-wrapper"
+        :class="{ open: profileMenu.isOpen.value }"
+        @click="profileMenu.toggle"
+      >
         <div class="user">
-          <img
-            src="https://i.pinimg.com/736x/46/ab/15/46ab15d5d0cefcf79826163694b03204.jpg"
-            class="avatar"
-          />
+          <img :src="auth.user?.avatarUrl" loading="lazy" class="avatar" />
 
           <span class="arrow">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -95,19 +84,25 @@ const closeProfile = () => {
           </span>
         </div>
 
-        <div class="dropdown" v-if="isProfileOpen" @click.stop>
-          <RouterLink to="/profile" @click="closeProfile">Profile</RouterLink>
-          <RouterLink to="/settings" @click="closeProfile">Settings</RouterLink>
-          <button @click="closeProfile">Logout</button>
+        <div class="dropdown" v-if="profileMenu.isOpen.value" @click.stop>
+          <RouterLink :to="`/profile/${auth.user?.id}`" @click="profileMenu.close"
+            >Profile</RouterLink
+          >
+          <RouterLink to="/settings" @click="profileMenu.close">Settings</RouterLink>
+          <button @click="profileMenu.close">Logout</button>
         </div>
+      </div>
+
+      <div v-else class="auth-buttons">
+        <RouterLink to="/auth" class="auth-btn"> Login / Register </RouterLink>
       </div>
     </div>
 
-    <div class="mobile-menu" :class="{ open: isOpen }">
-      <button class="close-btn" @click="closeMenu">✕</button>
+    <div class="mobile-menu" :class="{ open: mobileMenu.isOpen.value }">
+      <button class="close-btn" @click="mobileMenu.close">✕</button>
 
       <nav class="mobile-menu__nav">
-        <RouterLink v-for="item in menu" :key="item.href" :to="item.href" @click="closeMenu">
+        <RouterLink v-for="item in menu" :key="item.href" :to="item.href" @click="mobileMenu.close">
           {{ item.label }}
         </RouterLink>
       </nav>
@@ -171,6 +166,33 @@ const closeProfile = () => {
   border: none;
   color: white;
   cursor: pointer;
+}
+
+.auth-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.auth-btn {
+  padding: 0.55rem 1.2rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-family: 'Merriweather', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+
+  color: #ff4d6d;
+  border: 1px solid #ff4d6d;
+  background: transparent;
+}
+
+.auth-btn:hover {
+  background: rgba(255, 77, 109, 0.12);
+  transform: translateY(-1px);
 }
 
 .user {

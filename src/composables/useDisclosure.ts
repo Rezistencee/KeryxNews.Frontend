@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-export function useModal() {
+export function useDisclosure() {
   const isOpen = ref(false)
 
   const open = () => {
@@ -11,9 +11,14 @@ export function useModal() {
     isOpen.value = false
   }
 
+  const toggle = () => {
+    isOpen.value = !isOpen.value
+  }
+
   return {
     isOpen,
     open,
     close,
+    toggle,
   }
 }

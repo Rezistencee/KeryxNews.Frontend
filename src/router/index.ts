@@ -17,7 +17,7 @@ const router = createRouter({
       component: AuthView,
     },
     {
-      path: '/profile',
+      path: '/profile/:id',
       name: 'profile',
       component: UserView,
     },

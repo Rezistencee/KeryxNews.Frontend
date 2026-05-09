@@ -1,8 +1,17 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
+
 import TheHeader from './components/TheHeader.vue'
 import TheFooter from './components/TheFooter.vue'
 
 import { RouterView } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+
+onMounted(async () => {
+  await auth.fetchMe()
+})
 
 const menu = [
   { label: 'Home', href: '/' },

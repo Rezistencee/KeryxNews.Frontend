@@ -1,10 +1,43 @@
 <script setup lang="ts">
+import { useAuthStore } from '@/stores/auth'
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const auth = useAuthStore()
+const router = useRouter()
 
 const isLogin = ref(true)
 
+const email = ref('')
+const fullName = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+
+const error = ref('')
+
 const toggleMode = () => {
   isLogin.value = !isLogin.value
+}
+
+const handleSubmit = async () => {
+  error.value = ''
+
+  try {
+    if (!isLogin.value) {
+      if (password.value !== confirmPassword.value) {
+        error.value = 'Passwords do not match'
+        return
+      }
+
+      await auth.register(email.value, fullName.value, password.value)
+    } else {
+      await auth.login(email.value, password.value)
+    }
+
+    router.push('/')
+  } catch (err: any) {
+    error.value = err?.response?.data || 'Authentication failed'
+  }
 }
 </script>
 
@@ -13,15 +46,23 @@ const toggleMode = () => {
     <div class="auth-card">
       <h2>{{ isLogin ? 'Login' : 'Register' }}</h2>
 
-      <form class="auth-form">
-        <input type="email" placeholder="Email" required />
+      <form class="auth-form" @submit.prevent="handleSubmit">
+        <input v-model="email" type="email" placeholder="Email" required />
 
-        <input type="password" placeholder="Password" required />
+        <input v-model="fullName" v-if="!isLogin" type="text" placeholder="Fullname" required />
 
-        <input v-if="!isLogin" type="password" placeholder="Confirm password" required />
+        <input v-model="password" type="password" placeholder="Password" required />
 
-        <button class="btn submit">
-          {{ isLogin ? 'Login' : 'Create account' }}
+        <input
+          v-model="confirmPassword"
+          v-if="!isLogin"
+          type="password"
+          placeholder="Confirm password"
+          required
+        />
+
+        <button class="btn submit" :disabled="auth.loading">
+          {{ auth.loading ? 'Loading...' : isLogin ? 'Login' : 'Create account' }}
         </button>
       </form>
 
@@ -30,6 +71,9 @@ const toggleMode = () => {
         <span @click="toggleMode">
           {{ isLogin ? 'Sign up' : 'Sign in' }}
         </span>
+      </p>
+      <p v-if="error" class="error">
+        {{ error }}
       </p>
     </div>
   </div>
@@ -139,5 +183,12 @@ const toggleMode = () => {
 .switch span:hover {
   color: #8aa4ff;
   text-decoration: underline;
+}
+
+.error {
+  margin-top: 1rem;
+  color: #ff6b6b;
+  text-align: center;
+  font-size: 0.9rem;
 }
 </style>

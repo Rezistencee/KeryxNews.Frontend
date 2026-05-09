@@ -1,17 +1,23 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { formatDate } from '@/utils/formatDate'
 
-import type { User } from '@/types/user'
 import type { Article } from '@/types/article'
-import { useModal } from '@/composables/useModal'
+import { useDisclosure } from '@/composables/useDisclosure'
 import EditProfileModal from '@/components/modals/EditProfileModal.vue'
+import { useAuthStore } from '@/stores/auth'
+import type { User } from '@/types/user'
+import { storeToRefs } from 'pinia'
+import { useRoute } from 'vue-router'
+import { getUserById } from '@/api/users'
 
-const user = ref<User>({
-  username: 'Rezistence',
-  avatarUrl: 'https://i.pinimg.com/736x/46/ab/15/46ab15d5d0cefcf79826163694b03204.jpg',
-  createdAt: '2026-05-02',
-})
+const route = useRoute()
+
+const auth = useAuthStore()
+const { user: authUser } = storeToRefs(auth)
+
+const profileUser = ref<User | null>(null)
+const loading = ref(false)
 
 const roles = ref([
   { name: 'Admin', type: 'admin' },
@@ -19,10 +25,13 @@ const roles = ref([
   { name: 'User', type: 'user' },
 ])
 
-const editModal = useModal()
+const editModal = useDisclosure()
 
 const activeTab = ref<'posts' | 'comments'>('posts')
-const isOwnProfile = ref(true)
+
+const isOwnProfile = computed(() => {
+  return authUser.value?.id === profileUser.value?.id
+})
 
 const isAuthor = ref(false)
 const isBanned = ref(true)
@@ -51,28 +60,52 @@ const comments = ref([
 
 const loadingPosts = ref(false)
 
-onMounted(async () => {
+async function fetchProfile() {
+  try {
+    loading.value = true
+
+    const id = route.params.id as string
+
+    const data = await getUserById(id)
+
+    profileUser.value = data
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(
+  () => route.params.id,
+  () => {
+    fetchProfile()
+  },
+  { immediate: true },
+)
+
+onMounted(() => {
   isAuthor.value = roles.value.some((role) => role.name === 'Author')
 })
 
 const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
-  user.value.username = payload.username
-  user.value.avatarUrl = payload.avatarUrl
+  if (!profileUser.value) return
+
+  profileUser.value.fullName = payload.username
+  profileUser.value.avatarUrl = payload.avatarUrl
 }
 </script>
 
 <template>
   <div class="profile-page">
     <div class="profile-header">
-      <img :src="user.avatarUrl" alt="User avatar" class="avatar" />
+      <img :src="profileUser?.avatarUrl" alt="User avatar" class="avatar" />
 
       <div class="info">
         <div class="username-row">
-          <h2 class="username">{{ user.username }}</h2>
+          <h2 class="username">{{ profileUser?.fullName }}</h2>
 
           <span v-if="!isOwnProfile" class="report-chip-text"> Report </span>
         </div>
-        <p class="registered">Member since: {{ formatDate(user.createdAt) }}</p>
+        <p class="registered">Member since: {{ formatDate(profileUser.createdAt) }}</p>
 
         <div class="chips">
           <span v-for="role in roles" :key="role.name" class="chip" :class="role.type">
@@ -135,8 +168,8 @@ const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
 
   <EditProfileModal
     v-if="editModal.isOpen.value"
-    :username="user.username"
-    :avatar-url="user.avatarUrl"
+    :username="authUser.fullName"
+    :avatar-url="authUser.avatarUrl"
     @close="editModal.close"
     @save="onSaveProfile"
   />
