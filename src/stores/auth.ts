@@ -35,6 +35,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
 
       await loginRequest(email, password)
+      fetchMe()
     } finally {
       loading.value = false
     }

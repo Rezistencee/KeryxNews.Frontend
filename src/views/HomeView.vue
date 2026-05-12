@@ -1,36 +1,32 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import NewsCard from '@/components/NewsCard.vue'
+import type { Article } from '@/types/article'
+import { getLatest, getTrending } from '@/api/articles.service'
 
-const slides = [
-  {
-    id: 1,
-    text: 'Assassin`s Creed Resynced',
-    imageUrl:
-      'https://c1-ebgames.eb-cdn.com.au/merchandising/images/screenshots/1ba4968cfe924da0bac2a794c7618d26_l.jpg',
-  },
-  {
-    id: 2,
-    text: 'Windrose release',
-    imageUrl:
-      'https://cdn1.epicgames.com/spt-assets/37958149814246918b62a0da04d31e21/windrose-1fmu9.png?resize=1&w=480&h=270&quality=medium',
-  },
-  {
-    id: 3,
-    text: "Arc Raiders 'Riven Tides' update",
-    imageUrl: 'https://frvr.com/wp-content/uploads/2026/04/arc-raiders-riven-tides-patch.jpg',
-  },
-]
+const articles = ref<Article[]>([])
+const trending = ref<Article[]>([])
 
 const current = ref(0)
 
 const nextSlide = () => {
-  current.value = (current.value + 1) % slides.length
+  current.value = (current.value + 1) % trending.value.length
 }
 
 const prevSlide = () => {
-  current.value = (current.value - 1 + slides.length) % slides.length
+  current.value = (current.value - 1 + trending.value.length) % trending.value.length
 }
+
+onMounted(async () => {
+  try {
+    const [latest, trendingArticles] = await Promise.all([getLatest(1, 10), getTrending(3)])
+
+    articles.value = latest
+    trending.value = trendingArticles
+  } catch (error) {
+    console.error(error)
+  }
+})
 </script>
 
 <template>
@@ -42,7 +38,7 @@ const prevSlide = () => {
         </div>
 
         <div class="banner-counter">
-          <p>{{ current + 1 }} / {{ slides.length }}</p>
+          <p>{{ current + 1 }} / {{ trending.length }}</p>
         </div>
       </div>
 
@@ -64,12 +60,12 @@ const prevSlide = () => {
           <div
             class="slide"
             :style="{
-              backgroundImage: `url(${slides[current]?.imageUrl})`,
+              backgroundImage: `url(${trending[current]?.imageUrl})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }"
           >
-            <h1>{{ slides[current]?.text }}</h1>
+            <h1>{{ trending[current]?.title }}</h1>
           </div>
         </div>
 
@@ -93,27 +89,13 @@ const prevSlide = () => {
 
       <div class="content__container">
         <NewsCard
-          title="Naughty Dog & TLOU 3"
-          description="In the AAA gaming space, Naughty Dog has been at the forefront of technological innovation for many years..."
-          imageUrl="https://www.denofgeek.com/wp-content/uploads/2020/06/the-last-of-us-part-2-ellie-joel.jpg?resize=768%2C432"
-          :views="1850"
-          :comments="86"
-        />
-
-        <NewsCard
-          title="Naughty Dog & TLOU 3"
-          description="In the AAA gaming space, Naughty Dog has been at the forefront of technological innovation for many years..."
-          imageUrl="https://www.denofgeek.com/wp-content/uploads/2020/06/the-last-of-us-part-2-ellie-joel.jpg?resize=768%2C432"
-          :views="2300"
-          :comments="156"
-        />
-
-        <NewsCard
-          title="Naughty Dog & TLOU 3"
-          description="In the AAA gaming space, Naughty Dog has been at the forefront of technological innovation for many years..."
-          imageUrl="https://www.denofgeek.com/wp-content/uploads/2020/06/the-last-of-us-part-2-ellie-joel.jpg?resize=768%2C432"
-          :views="4568"
-          :comments="280"
+          v-for="article in articles"
+          :key="article.id"
+          :title="article.title"
+          :description="article.content"
+          :imageUrl="article.imageUrl"
+          :views="article.views"
+          :comments="3"
         />
       </div>
     </section>
@@ -189,6 +171,7 @@ const prevSlide = () => {
 
 .slide h1 {
   font-family: 'Merriweather', sans-serif;
+  font-size: 2rem;
 }
 
 .arrow {
@@ -244,6 +227,10 @@ const prevSlide = () => {
 
   .content h1 {
     padding-left: 1rem;
+  }
+
+  .slide h1 {
+    font-size: 1.2rem;
   }
 
   .content__container {

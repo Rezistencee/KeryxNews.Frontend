@@ -21,7 +21,7 @@ defineProps<{
         <p class="desc">{{ description }}</p>
 
         <div class="meta">
-          <span v-if="views"
+          <span
             ><svg
               width="24"
               height="24"
@@ -38,7 +38,7 @@ defineProps<{
             </svg>
             {{ views }}</span
           >
-          <span v-if="comments"
+          <span
             ><svg
               width="24"
               height="24"
