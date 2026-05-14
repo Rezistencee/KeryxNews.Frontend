@@ -139,7 +139,7 @@ const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
           <div v-for="post in posts" :key="post.id" class="post-card">
             <h4>{{ post.title }}</h4>
 
-            <p>{{ post.content }}</p>
+            <div v-html="post.content"></div>
 
             <span>{{ formatDate(post.createdAt) }}</span>
           </div>
