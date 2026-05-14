@@ -16,6 +16,16 @@ const auth = useAuthStore()
 
 const mobileMenu = useDisclosure()
 const profileMenu = useDisclosure()
+
+const logout = async () => {
+  await auth.logout()
+
+  profileMenu.close()
+  try {
+  } catch (e) {
+    console.log(e)
+  }
+}
 </script>
 
 <template>
@@ -89,7 +99,7 @@ const profileMenu = useDisclosure()
             >Profile</RouterLink
           >
           <RouterLink to="/settings" @click="profileMenu.close">Settings</RouterLink>
-          <button @click="profileMenu.close">Logout</button>
+          <button @click="logout">Logout</button>
         </div>
       </div>
 

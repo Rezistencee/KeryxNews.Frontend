@@ -3,6 +3,9 @@ import { onMounted, ref } from 'vue'
 import NewsCard from '@/components/NewsCard.vue'
 import type { Article } from '@/types/article'
 import { getLatest, getTrending } from '@/api/articles.service'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const articles = ref<Article[]>([])
 const trending = ref<Article[]>([])
@@ -15,6 +18,10 @@ const nextSlide = () => {
 
 const prevSlide = () => {
   current.value = (current.value - 1 + trending.value.length) % trending.value.length
+}
+
+const openArticle = (id: string) => {
+  router.push(`/articles/${id}`)
 }
 
 onMounted(async () => {
@@ -64,6 +71,7 @@ onMounted(async () => {
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }"
+            @click="openArticle(String(trending[current]?.id))"
           >
             <h1>{{ trending[current]?.title }}</h1>
           </div>
@@ -96,6 +104,7 @@ onMounted(async () => {
           :imageUrl="article.imageUrl"
           :views="article.views"
           :comments="3"
+          @click="openArticle(String(article.id))"
         />
       </div>
     </section>
@@ -167,6 +176,15 @@ onMounted(async () => {
   justify-content: center;
   color: white;
   font-size: 24px;
+  cursor: pointer;
+}
+
+.slide {
+  transition: transform 0.2s ease;
+}
+
+.slide:hover {
+  transform: scale(1.01);
 }
 
 .slide h1 {

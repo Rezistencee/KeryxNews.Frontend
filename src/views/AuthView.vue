@@ -72,6 +72,11 @@ const handleSubmit = async () => {
           {{ isLogin ? 'Sign up' : 'Sign in' }}
         </span>
       </p>
+      <button type="button" class="google-btn" @click="auth.loginWithGoogle()">
+        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="google" />
+
+        Continue with Google
+      </button>
       <p v-if="error" class="error">
         {{ error }}
       </p>
@@ -183,6 +188,44 @@ const handleSubmit = async () => {
 .switch span:hover {
   color: #8aa4ff;
   text-decoration: underline;
+}
+
+.google-btn {
+  margin-top: 0.5rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+
+  width: 100%;
+
+  padding: 0.9rem;
+
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  background: rgba(255, 255, 255, 0.05);
+
+  color: white;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+
+  font-family: 'Merriweather', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.google-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+.google-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
 }
 
 .error {

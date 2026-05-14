@@ -5,6 +5,7 @@ import type { User } from '@/types/user'
 import {
   getMe,
   login as loginRequest,
+  loginWithGoogle as googleLoginRequest,
   register as registerRequest,
   logout as logoutRequest,
 } from '@/api/auth'
@@ -41,6 +42,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function loginWithGoogle() {
+    googleLoginRequest()
+  }
+
   async function register(email: string, fullName: string, password: string) {
     try {
       loading.value = true
@@ -65,6 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     fetchMe,
     login,
+    loginWithGoogle,
     register,
     logout,
   }

@@ -1,5 +1,7 @@
 import { api } from './client'
 
+const API_URL = 'http://localhost:5052'
+
 export async function getMe() {
   const response = await api.get('/auth/me')
 
@@ -13,6 +15,10 @@ export async function login(email: string, password: string) {
   })
 
   return response.data
+}
+
+export function loginWithGoogle() {
+  window.location.href = `${API_URL}/auth/external/google`
 }
 
 export async function register(email: string, fullName: string, password: string) {
