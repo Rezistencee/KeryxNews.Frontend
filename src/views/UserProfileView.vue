@@ -2,14 +2,14 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { formatDate } from '@/utils/formatDate'
 
-import type { Article } from '@/types/article'
 import { useDisclosure } from '@/composables/useDisclosure'
 import EditProfileModal from '@/components/modals/EditProfileModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/types/user'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
-import { getUserWithArticles } from '@/api/users'
+import { getUserComments, getUserWithArticles } from '@/api/users'
+import type { ArticleComment } from '@/types/articleComment'
 
 const route = useRoute()
 
@@ -34,26 +34,21 @@ const isOwnProfile = computed(() => {
 })
 
 const isAuthor = ref(false)
-const isBanned = ref(true)
 
 const posts = computed(() => {
   return profileUser.value?.articles ?? []
 })
 
-const comments = ref([
-  {
-    id: 2,
-    content: 'Naughty Dog still cooking.',
-    createdAt: '2026-05-08',
-  },
-  {
-    id: 1,
-    content: 'This update actually looks promising.',
-    createdAt: '2026-05-07',
-  },
-])
-
 const loadingPosts = ref(false)
+
+const comments = ref<ArticleComment[]>([])
+const loadingComments = ref(false)
+
+const isBanned = computed(() => {
+  if (!profileUser.value?.bannedUntil) return false
+
+  return new Date(profileUser.value.bannedUntil) > new Date()
+})
 
 async function fetchProfile() {
   try {
@@ -69,13 +64,35 @@ async function fetchProfile() {
   }
 }
 
+async function fetchComments() {
+  try {
+    loadingComments.value = true
+
+    const id = route.params.id as string
+
+    comments.value = await getUserComments(id)
+  } finally {
+    loadingComments.value = false
+  }
+}
+
 watch(
   () => route.params.id,
   () => {
+    comments.value = []
+    loadingComments.value = false
+
     fetchProfile()
+    window.scrollTo({ top: 0, behavior: 'auto' })
   },
   { immediate: true },
 )
+
+watch(activeTab, async (tab) => {
+  if (tab === 'comments' && comments.value.length === 0) {
+    await fetchComments()
+  }
+})
 
 onMounted(() => {
   isAuthor.value = roles.value.some((role) => role.name === 'Author')
@@ -100,7 +117,7 @@ const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
 
           <span v-if="!isOwnProfile" class="report-chip-text"> Report </span>
         </div>
-        <p class="registered">Member since: {{ formatDate(profileUser.createdAt) }}</p>
+        <p class="registered">Member since: {{ formatDate(profileUser?.createdAt as string) }}</p>
 
         <div class="chips">
           <span v-for="role in roles" :key="role.name" class="chip" :class="role.type">
@@ -110,9 +127,9 @@ const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
       </div>
 
       <div class="actions" v-if="isOwnProfile">
-        <button @click="editModal.open">Edit</button>
-        <button v-if="isAuthor">My Articles</button>
-        <button>Settings</button>
+        <button @click="editModal.open" class="action-item">Edit</button>
+        <button v-if="isAuthor" class="action-item">My Articles</button>
+        <RouterLink to="/settings" class="action-item">Settings</RouterLink>
       </div>
     </div>
 
@@ -203,9 +220,12 @@ const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
   gap: 0.75rem;
 }
 
-.actions button {
+.action-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
   padding: 0.6rem 2rem;
-  border: none;
   border-radius: 10px;
 
   background: rgba(255, 255, 255, 0.08);
@@ -214,11 +234,14 @@ const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
   font-family: 'Merriweather', sans-serif;
   font-size: 1rem;
 
+  text-decoration: none;
+  border: none;
+
   cursor: pointer;
   transition: 0.2s;
 }
 
-.actions button:hover {
+.action-item:hover {
   background: rgba(255, 255, 255, 0.14);
 }
 

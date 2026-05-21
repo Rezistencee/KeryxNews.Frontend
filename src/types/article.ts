@@ -1,3 +1,5 @@
+import type { ArticleComment } from './articleComment'
+
 export interface Article {
   id?: string
   title: string
@@ -5,4 +7,7 @@ export interface Article {
   imageUrl: string
   createdAt: string
   views: number
+  commentsCount: number
+
+  comments: ArticleComment[]
 }

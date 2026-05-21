@@ -1,4 +1,5 @@
 import type { Article } from './article'
+import type { ArticleComment } from './articleComment'
 
 export interface User {
   id: string
@@ -6,6 +7,8 @@ export interface User {
   email: string
   avatarUrl: string
   createdAt: string
+  bannedUntil: string
 
   articles?: Article[]
+  comments?: ArticleComment[]
 }

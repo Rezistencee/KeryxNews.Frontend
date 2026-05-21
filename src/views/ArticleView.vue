@@ -6,12 +6,17 @@ import { getArticleById } from '@/api/articles.service'
 import { formatDate } from '@/utils/formatDate'
 import CommentComponent from '@/components/CommentComponent.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { ArticleComment } from '@/types/articleComment'
+import { createComment } from '@/api/comments.service'
 
 const route = useRoute()
 const auth = useAuthStore()
 const article = ref<Article | null>(null)
 
+const isSubmitting = ref(false)
 const commentText = ref('')
+
+const comments = ref<ArticleComment[]>([])
 
 const readingTime = computed(() => {
   if (!article.value?.content) return 1
@@ -24,33 +29,27 @@ const readingTime = computed(() => {
   return minutes
 })
 
-const comments = [
-  {
-    id: 1,
-    author: 'John Doe',
-    text: 'This is a great article, really enjoyed the writing style!',
-    createdAt: new Date(),
-    avatarUrl: null,
-  },
-  {
-    id: 2,
-    author: 'Anna Smith',
-    text: 'I learned something new today. Thanks for sharing!',
-    createdAt: new Date(),
-    avatarUrl: 'https://i.pravatar.cc/150?img=47',
-  },
-  {
-    id: 3,
-    author: 'Alex Johnson',
-    text: 'Would love to see more posts like this one.',
-    createdAt: new Date(),
-    avatarUrl: 'https://i.pravatar.cc/150?img=12',
-  },
-]
+const submitComment = async () => {
+  if (!commentText.value.trim()) return
+
+  try {
+    isSubmitting.value = true
+
+    const id = route.params.id as string
+
+    const newComment = await createComment(id, commentText.value)
+
+    commentText.value = ''
+    comments.value.unshift(newComment)
+  } finally {
+    isSubmitting.value = false
+  }
+}
 
 onMounted(async () => {
   const id = route.params.id as string
   article.value = await getArticleById(id)
+  comments.value = article.value.comments ?? []
 })
 </script>
 
@@ -120,16 +119,17 @@ onMounted(async () => {
       <div v-else class="comment-form">
         <textarea v-model="commentText" placeholder="Write a comment..." rows="3" />
 
-        <button>Post comment</button>
+        <button :disabled="isSubmitting" @click="submitComment">Post comment</button>
       </div>
 
       <CommentComponent
         v-for="c in comments"
         :key="c.id"
-        :author="c.author"
-        :text="c.text"
+        :author-id="c.author.id"
+        :author="c.author.name"
+        :text="c.content"
         :created-at="c.createdAt"
-        :avatar-url="c.avatarUrl"
+        :avatar-url="c.author.avatarUrl"
       />
     </div>
   </div>

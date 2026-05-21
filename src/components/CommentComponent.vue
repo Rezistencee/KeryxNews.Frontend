@@ -3,6 +3,7 @@ import { formatDate } from '@/utils/formatDate'
 
 type Props = {
   author: string
+  authorId?: string
   text: string
   createdAt: Date | string
   avatarUrl?: string | null
@@ -27,7 +28,13 @@ const initials = props.author
           <span v-else>{{ initials }}</span>
         </div>
 
-        <span class="author">{{ author }}</span>
+        <router-link v-if="authorId" :to="`/profile/${authorId}`" class="author">
+          {{ author }}
+        </router-link>
+
+        <span v-else class="author">
+          {{ author }}
+        </span>
       </div>
 
       <span class="date">{{ formatDate(createdAt as string) }}</span>
@@ -81,6 +88,12 @@ const initials = props.author
 .author {
   font-weight: 500;
   font-size: 0.95rem;
+  color: white;
+  text-decoration: none;
+}
+
+.author:hover {
+  opacity: 0.8;
 }
 
 .date {

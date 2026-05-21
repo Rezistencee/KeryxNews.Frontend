@@ -28,7 +28,7 @@ onMounted(async () => {
   try {
     const [latest, trendingArticles] = await Promise.all([getLatest(1, 10), getTrending(3)])
 
-    articles.value = latest
+    articles.value = latest.items
     trending.value = trendingArticles
   } catch (error) {
     console.error(error)
@@ -103,7 +103,7 @@ onMounted(async () => {
           :description="article.content"
           :imageUrl="article.imageUrl"
           :views="article.views"
-          :comments="3"
+          :comments="article.commentsCount"
           @click="openArticle(String(article.id))"
         />
       </div>
