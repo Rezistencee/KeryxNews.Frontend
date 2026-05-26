@@ -1,7 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { formatDate } from '@/utils/formatDate'
+import { useAuthStore } from '@/stores/auth'
+import { useDisclosure } from '@/composables/useDisclosure'
+import ReportCommentModal from './modals/ReportCommentModal.vue'
 
 type Props = {
+  commentId: string
   author: string
   authorId?: string
   text: string
@@ -11,12 +16,23 @@ type Props = {
 
 const props = defineProps<Props>()
 
+const auth = useAuthStore()
+const reportModal = useDisclosure()
+
 const initials = props.author
   .split(' ')
   .map((w) => w[0])
   .slice(0, 2)
   .join('')
   .toUpperCase()
+
+const canReport = computed(() => {
+  return auth.user?.id && auth.user.id !== props.authorId
+})
+
+const onReport = () => {
+  reportModal.open()
+}
 </script>
 
 <template>
@@ -37,11 +53,23 @@ const initials = props.author
         </span>
       </div>
 
-      <span class="date">{{ formatDate(createdAt as string) }}</span>
+      <div class="right-side">
+        <span class="date">
+          {{ formatDate(createdAt as string) }}
+        </span>
+
+        <span v-if="canReport" class="report-chip" @click="onReport"> Report </span>
+      </div>
     </div>
 
     <p class="text">{{ text }}</p>
   </div>
+
+  <ReportCommentModal
+    v-if="reportModal.isOpen.value"
+    :comment-id="props.commentId"
+    @close="reportModal.close"
+  />
 </template>
 
 <style scoped>
@@ -60,6 +88,12 @@ const initials = props.author
 }
 
 .author-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.right-side {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -99,6 +133,31 @@ const initials = props.author
 .date {
   font-size: 0.75rem;
   opacity: 0.6;
+}
+
+.report-chip {
+  display: inline-flex;
+  align-items: center;
+
+  font-size: 0.7rem;
+  font-weight: 600;
+
+  padding: 4px 10px;
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  color: rgba(255, 255, 255, 0.75);
+
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.report-chip:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: rgba(239, 68, 68, 1);
 }
 
 .text {

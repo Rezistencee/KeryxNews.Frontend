@@ -24,3 +24,47 @@ export async function getTrending(count: number = 3): Promise<Article[]> {
 
   return response.data
 }
+
+export async function getMyArticles() {
+  const response = await api.get('/article/my')
+  return response.data
+}
+
+export async function getPendingArticles() {
+  const response = await api.get('/article/pending')
+  return response.data
+}
+
+export async function createArticle(data: {
+  title: string
+  content: string
+  imageUrl?: string | null
+}) {
+  const response = await api.post('/article', data)
+  return response.data
+}
+
+export const updateArticle = async (
+  id: string,
+  payload: {
+    title: string
+    content: string
+    imageUrl?: string | null
+  },
+) => {
+  const { data } = await api.put(`/article/${id}`, payload)
+
+  return data
+}
+
+export async function submitArticle(id: string) {
+  const response = await api.post(`/article/${id}/submit`)
+
+  return response.data
+}
+
+export async function publishArticle(id: string) {
+  const response = await api.post(`/article/${id}/publish`)
+
+  return response.data
+}

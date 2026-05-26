@@ -10,10 +10,11 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 import { getUserComments, getUserWithArticles } from '@/api/users'
 import type { ArticleComment } from '@/types/articleComment'
+import ReportUserModal from '@/components/modals/ReportUserModal.vue'
 
 const route = useRoute()
-
 const auth = useAuthStore()
+
 const { user: authUser } = storeToRefs(auth)
 
 const profileUser = ref<User | null>(null)
@@ -26,6 +27,7 @@ const roles = ref([
 ])
 
 const editModal = useDisclosure()
+const reportModal = useDisclosure()
 
 const activeTab = ref<'posts' | 'comments'>('posts')
 
@@ -79,6 +81,8 @@ async function fetchComments() {
 watch(
   () => route.params.id,
   () => {
+    reportModal.close()
+
     comments.value = []
     loadingComments.value = false
 
@@ -115,7 +119,9 @@ const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
         <div class="username-row">
           <h2 class="username">{{ profileUser?.fullName }}</h2>
 
-          <span v-if="!isOwnProfile" class="report-chip-text"> Report </span>
+          <span v-if="!isOwnProfile" class="report-chip-text" @click="reportModal.open">
+            Report
+          </span>
         </div>
         <p class="registered">Member since: {{ formatDate(profileUser?.createdAt as string) }}</p>
 
@@ -128,7 +134,7 @@ const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
 
       <div class="actions" v-if="isOwnProfile">
         <button @click="editModal.open" class="action-item">Edit</button>
-        <button v-if="isAuthor" class="action-item">My Articles</button>
+        <RouterLink v-if="isAuthor" to="/my-articles" class="action-item">My Articles</RouterLink>
         <RouterLink to="/settings" class="action-item">Settings</RouterLink>
       </div>
     </div>
@@ -184,6 +190,13 @@ const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
     :avatar-url="authUser.avatarUrl"
     @close="editModal.close"
     @save="onSaveProfile"
+  />
+
+  <ReportUserModal
+    v-if="reportModal.isOpen.value && profileUser"
+    :key="profileUser.id"
+    :user-id="profileUser.id"
+    @close="reportModal.close"
   />
 </template>
 

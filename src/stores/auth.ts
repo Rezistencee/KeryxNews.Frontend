@@ -17,6 +17,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!user.value)
 
+  const hasRole = (role: string) => {
+    return user.value?.roles?.includes(role) ?? false
+  }
+
   async function fetchMe() {
     try {
       loading.value = true
@@ -36,7 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
 
       await loginRequest(email, password)
-      fetchMe()
+      await fetchMe()
     } finally {
       loading.value = false
     }
@@ -68,6 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     loading,
     isAuthenticated,
+    hasRole,
     fetchMe,
     login,
     loginWithGoogle,

@@ -7,7 +7,10 @@ export interface User {
   email: string
   avatarUrl: string
   createdAt: string
-  bannedUntil: string
+
+  bannedUntil?: string | null
+
+  roles?: string[]
 
   articles?: Article[]
   comments?: ArticleComment[]

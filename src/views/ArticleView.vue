@@ -125,6 +125,7 @@ onMounted(async () => {
       <CommentComponent
         v-for="c in comments"
         :key="c.id"
+        :comment-id="c.id"
         :author-id="c.author.id"
         :author="c.author.name"
         :text="c.content"

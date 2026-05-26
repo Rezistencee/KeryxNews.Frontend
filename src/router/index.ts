@@ -6,6 +6,8 @@ import ArticlesView from '@/views/ArticlesView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import { useAuthStore } from '@/stores/auth'
 import UserProfileView from '@/views/UserProfileView.vue'
+import AuthorArticlesView from '@/views/AuthorArticlesView.vue'
+import AdminView from '@/views/AdminView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,15 +41,43 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: SettingsView,
-      beforeEnter: () => {
-        const auth = useAuthStore()
-
-        if (!auth.user) {
-          return '/auth'
-        }
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
+      path: '/my-articles',
+      name: 'my-articles',
+      component: AuthorArticlesView,
+      meta: {
+        requiresAuth: true,
+        roles: ['Author'],
+      },
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: AdminView,
+      meta: {
+        requiresAuth: true,
+        roles: ['Admin'],
       },
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  const auth = useAuthStore()
+
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    return '/auth'
+  }
+
+  const roles = to.meta.roles as string[] | undefined
+
+  if (roles && !roles.some((role) => auth.hasRole(role))) {
+    return '/'
+  }
 })
 
 export default router
