@@ -9,11 +9,13 @@ export async function getArticleById(id: string): Promise<Article> {
 }
 
 export async function getLatest(
-  page: number = 1,
-  pageSize: number = 5,
+  page = 1,
+  pageSize = 10,
+  search = '',
+  sortBy = 'Date',
 ): Promise<PageResponse<Article>> {
   const response = await api.get<PageResponse<Article>>(
-    `/article?page=${page}&pageSize=${pageSize}`,
+    `/article?page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}&sortBy=${sortBy}`,
   )
 
   return response.data
@@ -65,6 +67,12 @@ export async function submitArticle(id: string) {
 
 export async function publishArticle(id: string) {
   const response = await api.post(`/article/${id}/publish`)
+
+  return response.data
+}
+
+export async function rejectArticle(id: string) {
+  const response = await api.post(`/article/${id}/reject`)
 
   return response.data
 }

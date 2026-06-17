@@ -11,6 +11,15 @@ const emit = defineEmits<{
   (e: 'open', id: string): void
 }>()
 
+const statusTextMap: Record<string, string> = {
+  Draft: '',
+  PendingReview: 'In review',
+  Rejected: 'Rejected',
+  Approved: 'Published',
+}
+
+const getStatusText = (status: string) => statusTextMap[status] ?? status
+
 const onSubmit = () => {
   emit('submit', props.article.id)
 }
@@ -72,8 +81,8 @@ const onOpen = () => {
           {{ submitting ? 'Submitting...' : 'Submit' }}
         </button>
 
-        <span v-else class="hint">
-          {{ article.status === 'PendingReview' ? 'In review' : 'Published' }}
+        <span class="hint">
+          {{ getStatusText(article.status) }}
         </span>
       </div>
     </div>
@@ -214,6 +223,12 @@ button:disabled {
   background: rgba(251, 191, 36, 0.12);
   box-shadow: 0 0 10px rgba(251, 191, 36, 0.15);
   animation: pulse 2s infinite;
+}
+
+.badge.Rejected {
+  color: #ef4444;
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .badge.Approved {

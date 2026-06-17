@@ -8,7 +8,7 @@ export interface User {
   avatarUrl: string
   createdAt: string
 
-  bannedUntil?: string | null
+  banUntil?: string | null
 
   roles?: string[]
 

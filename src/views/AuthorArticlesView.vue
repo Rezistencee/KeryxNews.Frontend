@@ -7,8 +7,7 @@ import AuthorArticleCard from '@/components/AuthorArticleCard.vue'
 import { useDisclosure } from '@/composables/useDisclosure'
 import CreateArticleModal from '@/components/modals/CreateArticleModal.vue'
 import EditArticleModal from '@/components/modals/EditArticleModal.vue'
-
-const router = useRouter()
+import ArticleViewsChart from '@/components/ArticleViewsChart.vue'
 
 const createModal = useDisclosure()
 const editModal = useDisclosure()
@@ -65,6 +64,22 @@ const openArticle = (id: string) => {
   editModal.open()
 }
 
+const approvedArticles = computed(() =>
+  articles.value.filter((article) => article.status === 'Approved'),
+)
+
+const totalViews = computed(() =>
+  approvedArticles.value.reduce((sum, article) => sum + article.views, 0),
+)
+
+const totalComments = computed(() =>
+  approvedArticles.value.reduce((sum, article) => sum + article.commentsCount, 0),
+)
+
+const averageViews = computed(() =>
+  approvedArticles.value.length ? Math.round(totalViews.value / approvedArticles.value.length) : 0,
+)
+
 onMounted(load)
 </script>
 
@@ -115,6 +130,34 @@ onMounted(load)
         @open="openArticle"
       />
     </div>
+  </div>
+
+  <div v-if="approvedArticles.length" class="analytics-section">
+    <h2>Article Analytics</h2>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Published Articles</span>
+        <strong>{{ approvedArticles.length }}</strong>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">Total Views</span>
+        <strong>{{ totalViews }}</strong>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">Comments</span>
+        <strong>{{ totalComments }}</strong>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">Avg Views</span>
+        <strong>{{ averageViews }}</strong>
+      </div>
+    </div>
+
+    <ArticleViewsChart :articles="approvedArticles" />
   </div>
 </template>
 
@@ -210,32 +253,6 @@ onMounted(load)
   margin: 0;
 }
 
-.badge {
-  font-size: 0.7rem;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid;
-  white-space: nowrap;
-}
-
-.badge.Draft {
-  color: #cbd5e1;
-  border-color: #cbd5e1;
-  background: rgba(148, 163, 184, 0.1);
-}
-
-.badge.PendingReview {
-  color: #fbbf24;
-  border-color: #fbbf24;
-  background: rgba(251, 191, 36, 0.1);
-}
-
-.badge.Approved {
-  color: #22c55e;
-  border-color: #22c55e;
-  background: rgba(34, 197, 94, 0.1);
-}
-
 .excerpt {
   opacity: 0.7;
   font-size: 0.85rem;
@@ -275,5 +292,53 @@ onMounted(load)
 
 .loading {
   opacity: 0.7;
+}
+
+.analytics-section {
+  margin: 1rem;
+
+  padding: 1.5rem;
+
+  border-radius: 18px;
+
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.analytics-section h2 {
+  margin-bottom: 1rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+
+  gap: 1rem;
+
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  padding: 1.25rem;
+
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.04);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.stat-card strong {
+  font-size: 1.8rem;
+  color: white;
 }
 </style>

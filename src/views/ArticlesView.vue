@@ -4,54 +4,59 @@ import NewsCard from '@/components/NewsCard.vue'
 import type { Article } from '@/types/article'
 import { getLatest } from '@/api/articles.service'
 import { useRouter } from 'vue-router'
+import { usePagination } from '@/composables/usePagination'
+import { watchDebounced } from '@vueuse/core'
 
 const router = useRouter()
 
 const articles = ref<Article[]>([])
 
-const page = ref(1)
-const pageSize = 2
-
-const total = ref(0)
-const totalPages = ref(1)
+const { page, pageSize, totalPages, setTotal, nextPage, prevPage } = usePagination(1, 10)
 
 const search = ref('')
 
-const selectedPlatform = ref('All')
+const selectedSort = ref('Date')
 
-const platforms = ['All', 'PC', 'PS5', 'Xbox']
+const sortOptions = [
+  {
+    label: 'Newest',
+    value: 'Date',
+  },
+  {
+    label: 'Most Viewed',
+    value: 'Views',
+  },
+]
 
 const loadArticles = async () => {
-  try {
-    const response = await getLatest(page.value, pageSize)
+  const response = await getLatest(page.value, pageSize, search.value, selectedSort.value)
 
-    articles.value = response.items
-
-    total.value = response.meta.total
-
-    totalPages.value = Math.ceil(total.value / pageSize)
-  } catch (error) {
-    console.error(error)
-  }
+  articles.value = response.items
+  setTotal(response.meta.total)
 }
 
 const openArticle = (id: string) => {
   router.push(`/articles/${id}`)
 }
 
-const nextPage = () => {
-  if (page.value < totalPages.value) {
-    page.value++
-  }
-}
-
-const prevPage = () => {
-  if (page.value > 1) {
-    page.value--
-  }
-}
-
 watch(page, loadArticles)
+
+watchDebounced(
+  search,
+  () => {
+    page.value = 1
+    loadArticles()
+  },
+  {
+    debounce: 750,
+    maxWait: 1000,
+  },
+)
+
+watch(selectedSort, () => {
+  page.value = 1
+  loadArticles()
+})
 
 onMounted(loadArticles)
 </script>
@@ -69,12 +74,12 @@ onMounted(loadArticles)
 
       <div class="platforms">
         <button
-          v-for="platform in platforms"
-          :key="platform"
-          :class="{ active: selectedPlatform === platform }"
-          @click="selectedPlatform = platform"
+          v-for="sort in sortOptions"
+          :key="sort.value"
+          :class="{ active: selectedSort === sort.value }"
+          @click="selectedSort = sort.value"
         >
-          {{ platform }}
+          {{ sort.label }}
         </button>
       </div>
     </div>

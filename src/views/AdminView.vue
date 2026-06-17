@@ -1,18 +1,28 @@
 <script setup lang="ts">
-import { getPendingArticles } from '@/api/articles.service'
-import { getUsers } from '@/api/users'
+import { getPendingArticles, publishArticle, rejectArticle } from '@/api/articles.service'
+import { getReports } from '@/api/reports.service'
+import { banUser, deleteUser, getUsers, unbanUser, updateUserRoles } from '@/api/users'
+import { usePagination } from '@/composables/usePagination'
 import { useAuthStore } from '@/stores/auth'
 import type { Article } from '@/types/article'
 import type { PageResponse } from '@/types/pageResponse'
 import type { User } from '@/types/user'
+import type { Report } from '@/types/report'
 import { formatDate } from '@/utils/formatDate'
 import { onMounted, ref, watch } from 'vue'
+import { watchDebounced } from '@vueuse/core'
+import { useRouter } from 'vue-router'
+import { useDisclosure } from '@/composables/useDisclosure'
+import BanUserModal from '@/components/modals/BanUserModal.vue'
+
+const router = useRouter()
 
 const auth = useAuthStore()
 
 type Section = 'articles' | 'users' | 'reports'
 
 const users = ref<User[]>([])
+const reports = ref<Report[]>([])
 
 const pendingArticles = ref<Article[]>([])
 
@@ -22,24 +32,28 @@ const currentSection = ref<Section>('articles')
 
 const allRoles: string[] = ['User', 'Author', 'Admin']
 
-const page = ref(1)
-const pageSize = 4
+const userSearch = ref('')
+const { page, pageSize, totalPages, setTotal, nextPage, prevPage } = usePagination(1, 6)
 
-const total = ref(0)
-const totalPages = ref(1)
+const selectedUser = ref<User | null>(null)
+const banModal = useDisclosure()
+const banning = ref(false)
 
 const loading = ref(false)
+
+const openBanModal = (user: User) => {
+  selectedUser.value = user
+  banModal.open()
+}
 
 const loadUsers = async () => {
   try {
     loading.value = true
 
-    const response: PageResponse<User> = await getUsers(page.value, pageSize)
+    const response: PageResponse<User> = await getUsers(page.value, pageSize, userSearch.value)
 
     users.value = response.items
-    total.value = response.meta.total
-
-    totalPages.value = Math.ceil(total.value / pageSize)
+    setTotal(response.meta.total)
   } catch (e) {
     console.error(e)
   } finally {
@@ -48,8 +62,41 @@ const loadUsers = async () => {
 }
 
 const isBanned = (user: User) => {
-  if (!user.bannedUntil) return false
-  return new Date(user.bannedUntil) > new Date()
+  if (!user.banUntil) return false
+  return new Date(user.banUntil) > new Date()
+}
+
+const submitBan = async (payload: { reason: string; until: string | null }) => {
+  if (!selectedUser.value) return
+
+  try {
+    banning.value = true
+
+    const untilDate = payload.until ? new Date(payload.until).toISOString() : null
+
+    await banUser(String(selectedUser.value.id), {
+      reason: payload.reason,
+      until: untilDate,
+    })
+
+    banModal.close()
+    selectedUser.value = null
+
+    await loadUsers()
+  } catch (e) {
+    console.error(e)
+  } finally {
+    banning.value = false
+  }
+}
+const toggleBan = async (user: User) => {
+  if (isBanned(user)) {
+    await unbanUser(String(user.id))
+    await loadUsers()
+    return
+  }
+
+  openBanModal(user)
 }
 
 const loadPending = async () => {
@@ -66,8 +113,18 @@ const loadPending = async () => {
   }
 }
 
+const loadReports = async () => {
+  try {
+    reports.value = await getReports()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 const approveArticle = async (id: string) => {
   try {
+    await publishArticle(id)
+
     pendingArticles.value = pendingArticles.value.filter((a) => a.id !== id)
 
     previewArticle.value = null
@@ -76,32 +133,73 @@ const approveArticle = async (id: string) => {
   }
 }
 
-const rejectArticle = async (id: string) => {
+const onReject = async (id: string) => {
   try {
-    pendingArticles.value = pendingArticles.value.filter((a) => a.id !== id)
+    await rejectArticle(id)
 
-    previewArticle.value = null
-  } catch (e) {
-    console.error(e)
+    pendingArticles.value = pendingArticles.value.filter((article) => article.id !== id)
+  } catch (error) {
+    console.error(error)
   }
 }
 
-const toggleRole = (user: User, role: string) => {
+const toggleRole = async (user: User, role: string) => {
   if (!user.roles) user.roles = []
 
   const hasRole = user.roles.includes(role)
 
-  if (hasRole) {
-    user.roles = user.roles.filter((r) => r !== role)
-  } else {
-    user.roles.push(role)
+  const newRoles = hasRole ? user.roles.filter((r) => r !== role) : [...user.roles, role]
+
+  try {
+    await updateUserRoles(String(user.id), newRoles)
+
+    user.roles = newRoles
+  } catch (e) {
+    console.error(e)
   }
+}
+
+const onDeleteUser = async (user: User) => {
+  const confirmed = window.confirm(
+    `Delete user "${user.fullName}"?\n\nThis action cannot be undone.`,
+  )
+
+  if (!confirmed) return
+
+  try {
+    await deleteUser(String(user.id))
+
+    users.value = users.value.filter((u) => u.id !== user.id)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const viewTarget = (report: Report) => {
+  if (report.targetType === 'User') {
+    router.push(`/profile/${report.targetId}`)
+    return
+  }
+
+  console.log('Unsupported target type:', report.targetType)
 }
 
 watch(page, () => loadUsers())
 
+watchDebounced(
+  userSearch,
+  () => {
+    page.value = 1
+    loadUsers()
+  },
+  {
+    debounce: 750,
+    maxWait: 1000,
+  },
+)
+
 onMounted(async () => {
-  await Promise.all([loadUsers(), loadPending()])
+  await Promise.all([loadUsers(), loadPending(), loadReports()])
 })
 </script>
 
@@ -199,7 +297,7 @@ onMounted(async () => {
                 <th>Title</th>
                 <th>Author</th>
                 <th>Date</th>
-                <th></th>
+                <th>Actions</th>
               </tr>
             </thead>
 
@@ -221,9 +319,7 @@ onMounted(async () => {
                       Approve
                     </button>
 
-                    <button class="reject-btn" @click="rejectArticle(String(article.id))">
-                      Reject
-                    </button>
+                    <button class="reject-btn" @click="onReject(String(article.id))">Reject</button>
                   </div>
                 </td>
               </tr>
@@ -231,51 +327,120 @@ onMounted(async () => {
           </table>
         </div>
 
-        <div v-if="currentSection === 'users'" class="users-grid">
-          <div v-for="user in users" :key="user.id" class="user-card">
-            <div class="top">
-              <img :src="user.avatarUrl" />
+        <div v-if="currentSection === 'users'" class="users-panel">
+          <div class="users-toolbar">
+            <input
+              v-model="userSearch"
+              type="text"
+              placeholder="Search users by name or email..."
+              class="search-input"
+            />
+          </div>
 
-              <div class="info">
-                <h3>{{ user.fullName }}</h3>
+          <div class="users-grid">
+            <div v-for="user in users" :key="user.id" class="user-card">
+              <div class="top">
+                <img :src="user.avatarUrl" />
 
-                <p>{{ user.email }}</p>
+                <div class="info">
+                  <h3>{{ user.fullName }}</h3>
+
+                  <p>{{ user.email }}</p>
+                </div>
               </div>
-            </div>
 
-            <div class="role-section">
-              <label>Roles</label>
+              <div class="role-section">
+                <label>Roles</label>
 
-              <div class="roles">
-                <button
-                  v-for="role in allRoles"
-                  :key="role"
-                  class="role-chip"
-                  :class="{ active: user.roles?.includes(role) }"
-                  @click="toggleRole(user, role)"
-                >
-                  {{ role }}
-                </button>
+                <div class="roles">
+                  <button
+                    v-for="role in allRoles"
+                    :key="role"
+                    class="role-chip"
+                    :class="{ active: user.roles?.includes(role) }"
+                    @click="toggleRole(user, role)"
+                  >
+                    {{ role }}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div class="bottom">
-              <span class="status" :class="{ banned: isBanned(user) }">
-                {{ isBanned(user) ? 'Banned' : 'Active' }}
-              </span>
+              <div class="bottom">
+                <span class="status" :class="{ banned: isBanned(user) }">
+                  {{ isBanned(user) ? 'Banned' : 'Active' }}
+                </span>
 
-              <button class="ban-btn" :class="{ unban: isBanned(user) }">
-                {{ isBanned(user) ? 'Unban' : 'Ban' }}
-              </button>
+                <div class="user-actions">
+                  <button
+                    class="ban-btn"
+                    :class="{ unban: isBanned(user) }"
+                    @click="toggleBan(user)"
+                  >
+                    {{ isBanned(user) ? 'Unban' : 'Ban' }}
+                  </button>
+
+                  <button class="delete-btn" @click="onDeleteUser(user)">Delete</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        <div v-if="currentSection === 'reports'" class="reports-grid">
+          <div v-for="report in reports" :key="report.id" class="report-card">
+            <div class="report-header">
+              <div class="report-top">
+                <div class="report-left">
+                  <span class="report-type" :class="report.targetType.toLowerCase()">
+                    {{ report.targetType }}
+                  </span>
+                </div>
+
+                <div class="report-right">
+                  <span class="report-date">
+                    {{ formatDate(report.createdAt) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="right">
+                <span class="report-id">#{{ report.id.slice(0, 6) }}</span>
+              </div>
+            </div>
+
+            <div class="report-target">
+              <h3>{{ report.targetName }}</h3>
+              <p>Target ID: {{ report.targetId }}</p>
+            </div>
+
+            <div class="report-meta">
+              <div class="reporter">
+                <span class="label">Reporter</span>
+                <span class="value">{{ report.reporterName }}</span>
+              </div>
+
+              <div class="reason">
+                <span class="label">Reason</span>
+                <span class="value">{{ report.reason }}</span>
+              </div>
+            </div>
+
+            <div class="report-actions">
+              <button class="view-btn" @click="viewTarget(report)">View target</button>
+
+              <button class="action-btn danger">Ban / Remove</button>
+
+              <button class="action-btn ghost">Dismiss</button>
+            </div>
+          </div>
+        </div>
+
         <div class="pagination" v-if="currentSection === 'users'">
-          <button :disabled="page === 1" @click="page = page - 1">Previous</button>
+          <button :disabled="page === 1" @click="prevPage">Previous</button>
 
           <span> Page {{ page }} / {{ totalPages }} </span>
 
-          <button :disabled="page === totalPages" @click="page = page + 1">Next</button>
+          <button :disabled="page === totalPages" @click="nextPage">Next</button>
         </div>
       </main>
     </div>
@@ -291,9 +456,7 @@ onMounted(async () => {
         <div class="preview-content" v-html="previewArticle.content"></div>
 
         <div class="preview-actions">
-          <button class="reject-btn" @click="rejectArticle(String(previewArticle.id))">
-            Reject
-          </button>
+          <button class="reject-btn" @click="onReject(String(previewArticle.id))">Reject</button>
 
           <button class="approve-btn" @click="approveArticle(String(previewArticle.id))">
             Approve
@@ -302,6 +465,14 @@ onMounted(async () => {
       </div>
     </div>
   </div>
+
+  <BanUserModal
+    :open="banModal.isOpen.value"
+    :user="selectedUser"
+    :loading="banning"
+    @close="banModal.close()"
+    @submit="submitBan"
+  />
 </template>
 
 <style scoped>
@@ -509,6 +680,58 @@ td {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1rem;
+}
+
+.users-toolbar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.user-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ban-btn,
+.delete-btn {
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+  white-space: nowrap;
+}
+
+.delete-btn {
+  padding: 8px;
+  background: rgba(239, 68, 68, 0.85);
+}
+
+.delete-btn:hover {
+  background: #dc2626;
+}
+
+.search-input {
+  flex: 1;
+  background: #1f2937;
+  border: 1px solid #374151;
+  color: white;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 .user-card {
@@ -723,6 +946,136 @@ td {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
+}
+
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1rem;
+}
+
+.report-card {
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: 0.2s;
+}
+
+.report-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(239, 68, 68, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.report-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-left,
+.report-right {
+  display: flex;
+  align-items: center;
+}
+
+.report-type {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.report-date {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.report-type.user {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.report-type.comment {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+}
+
+.time {
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.report-target h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.report-target p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.report-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 11px;
+  opacity: 0.5;
+  display: block;
+}
+
+.value {
+  font-size: 13px;
+}
+
+.report-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.view-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.action-btn {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: none;
+  color: white;
+}
+
+.action-btn.danger {
+  background: rgba(239, 68, 68, 0.8);
+}
+
+.action-btn.ghost {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 @media (max-width: 900px) {

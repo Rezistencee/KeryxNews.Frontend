@@ -11,6 +11,7 @@ import { useRoute } from 'vue-router'
 import { getUserComments, getUserWithArticles } from '@/api/users'
 import type { ArticleComment } from '@/types/articleComment'
 import ReportUserModal from '@/components/modals/ReportUserModal.vue'
+import { ROLES } from '@/constants/roles'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -19,12 +20,6 @@ const { user: authUser } = storeToRefs(auth)
 
 const profileUser = ref<User | null>(null)
 const loading = ref(false)
-
-const roles = ref([
-  { name: 'Admin', type: 'admin' },
-  { name: 'Author', type: 'author' },
-  { name: 'User', type: 'user' },
-])
 
 const editModal = useDisclosure()
 const reportModal = useDisclosure()
@@ -35,7 +30,9 @@ const isOwnProfile = computed(() => {
   return authUser.value?.id === profileUser.value?.id
 })
 
-const isAuthor = ref(false)
+const isAuthor = computed(() => {
+  return auth.hasRole(ROLES.Author)
+})
 
 const posts = computed(() => {
   return profileUser.value?.articles ?? []
@@ -78,6 +75,13 @@ async function fetchComments() {
   }
 }
 
+const roleChips = computed(() => {
+  return (profileUser.value?.roles ?? []).map((role) => ({
+    name: role,
+    type: role.toLowerCase(),
+  }))
+})
+
 watch(
   () => route.params.id,
   () => {
@@ -96,10 +100,6 @@ watch(activeTab, async (tab) => {
   if (tab === 'comments' && comments.value.length === 0) {
     await fetchComments()
   }
-})
-
-onMounted(() => {
-  isAuthor.value = roles.value.some((role) => role.name === 'Author')
 })
 
 const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
@@ -126,7 +126,7 @@ const onSaveProfile = (payload: { username: string; avatarUrl: string }) => {
         <p class="registered">Member since: {{ formatDate(profileUser?.createdAt as string) }}</p>
 
         <div class="chips">
-          <span v-for="role in roles" :key="role.name" class="chip" :class="role.type">
+          <span v-for="role in roleChips" :key="role.name" class="chip" :class="role.type">
             {{ role.name }}
           </span>
         </div>
